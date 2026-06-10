@@ -1,0 +1,10 @@
+[project]
+name = "store-advisor-backend"
+version = "0.1.0"
+description = "Backend API for store site selection and business simulation."
+requires-python = ">=3.11,<3.13"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+

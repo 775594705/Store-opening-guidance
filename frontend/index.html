@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>开店指导模拟预测软件</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">MVP v0.9</p>
+            <h1>开店指导模拟预测软件</h1>
+          </div>
+          <span class="status-pill" id="status-pill">等待分析</span>
+        </header>
+
+        <div class="layout-grid">
+          <form class="panel input-panel" id="analysis-form">
+            <div class="panel-title">
+              <span class="icon">⌖</span>
+              <h2>候选位置</h2>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                城市
+                <input id="city" value="广州" />
+              </label>
+              <label>
+                区域/商圈/街道
+                <input id="district_area" value="天河区体育西路" />
+              </label>
+              <label>
+                详细位置
+                <input id="address" value="天环广场" />
+              </label>
+              <label class="category-field">
+                开店品类
+                <div class="category-input-wrap">
+                  <input id="category" value="奶茶店" autocomplete="off" />
+                  <button
+                    class="category-toggle-button"
+                    id="category-toggle-button"
+                    type="button"
+                    aria-label="展开常用品类"
+                    aria-expanded="false"
+                  >
+                    ▾
+                  </button>
+                </div>
+                <div class="category-menu hidden" id="category-menu"></div>
+              </label>
+              <label>
+                分析半径
+                <select id="radius_meters">
+                  <option value="500">500 米</option>
+                  <option value="1000" selected>1000 米</option>
+                  <option value="1500">1500 米</option>
+                  <option value="3000">3000 米</option>
+                </select>
+              </label>
+              <label>
+                月租金
+                <input id="rent_monthly" inputmode="numeric" value="18000" />
+              </label>
+              <label>
+                月预算
+                <input id="budget_monthly" inputmode="numeric" value="80000" />
+              </label>
+            </div>
+
+            <div class="map-picker">
+              <div class="map-toolbar">
+                <div class="map-meta">
+                  <span>地图选点</span>
+                  <strong id="map-address">未定位</strong>
+                </div>
+                <div class="map-buttons">
+                  <button class="secondary-button" id="detail-locate-button" type="button">
+                    <span id="detail-locate-icon">⌕</span>
+                    <span id="detail-locate-label">搜索详细</span>
+                  </button>
+                  <button class="ghost-button" id="clear-point-button" type="button" disabled>
+                    清除
+                  </button>
+                </div>
+              </div>
+              <div class="map-frame empty" id="map-frame">
+                <img class="hidden" id="map-image" alt="候选位置地图" />
+                <div class="map-controls">
+                  <button class="map-control-button" id="zoom-in-button" type="button" aria-label="放大">+</button>
+                  <button class="map-control-button" id="zoom-out-button" type="button" aria-label="缩小">−</button>
+                </div>
+                <div class="map-placeholder" id="map-placeholder">未定位</div>
+              </div>
+              <div class="coordinate-row">
+                <span id="coordinate-text">经纬度待确认</span>
+                <span>高德静态地图</span>
+              </div>
+              <div class="candidate-list hidden" id="candidate-list"></div>
+            </div>
+
+            <button class="primary-button" id="submit-button" type="submit">
+              <span id="submit-icon">▶</span>
+              <span id="submit-label">生成报告</span>
+            </button>
+
+            <div class="error-box hidden" id="error-box"></div>
+          </form>
+
+          <section class="panel report-panel">
+            <div class="panel-title">
+              <span class="icon">◆</span>
+              <h2>分析报告</h2>
+            </div>
+
+            <div id="empty-state" class="empty-state">
+              <span class="icon">✓</span>
+              <span>输入候选位置后生成报告</span>
+            </div>
+
+            <div id="report-content" class="hidden">
+              <div class="score-card" id="score-card">
+                <div>
+                  <strong id="total-score">--</strong>
+                  <span>综合评分</span>
+                </div>
+                <p id="level-text">--</p>
+              </div>
+              <p class="summary-text" id="summary-text"></p>
+              <div class="metric-list" id="metric-list"></div>
+              <div class="model-insights hidden" id="model-insights"></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel hidden" id="poi-section">
+          <div class="panel-title">
+            <span class="icon">◇</span>
+            <h2>周边 POI</h2>
+          </div>
+          <div class="summary-grid" id="summary-grid"></div>
+          <div class="poi-table" id="poi-table"></div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const API_BASE_URL = "http://127.0.0.1:8000";
+      const DEFAULT_MAP_ZOOM = 16;
+      const PRECISE_MAP_ZOOM = 17;
+      const MIN_MAP_ZOOM = 3;
+      const MAX_MAP_ZOOM = 19;
+      const STATIC_MAP_WIDTH = 640;
+      const STATIC_MAP_HEIGHT = 320;
+
+      const summaryTiles = [
+        { key: "total_poi_count", label: "总 POI", icon: "Σ", title: "全部 POI" },
+        {
+          key: "competitor_count_500m",
+          label: "500m 竞品",
+          icon: "!",
+          title: "500m 竞品",
+          group: "competitor",
+          maxDistance: 500,
+        },
+        { key: "residential_poi_count", label: "住宅", icon: "住", title: "住宅明细", group: "residential" },
+        { key: "office_poi_count", label: "办公", icon: "办", title: "办公明细", group: "office" },
+        { key: "transit_poi_count", label: "交通", icon: "行", title: "交通明细", group: "transit" },
+        { key: "commercial_poi_count", label: "商业", icon: "商", title: "商业明细", group: "commercial" },
+      ];
+
+      const categoryOptions = ["奶茶店", "咖啡店", "美甲店", "火锅店", "小吃店", "便利店", "烘焙店", "宠物店", "健身房", "社区生鲜店"];
+
+      const categoryLabels = {
+        competitor: "竞品",
+        residential: "住宅",
+        office: "办公",
+        transit: "交通",
+        school: "学校",
+        commercial: "商业",
+        complementary: "配套",
+        other: "其他",
+      };
+
+      const form = document.getElementById("analysis-form");
+      const cityInput = document.getElementById("city");
+      const districtAreaInput = document.getElementById("district_area");
+      const addressInput = document.getElementById("address");
+      const categoryInput = document.getElementById("category");
+      const categoryToggleButton = document.getElementById("category-toggle-button");
+      const categoryMenu = document.getElementById("category-menu");
+      const radiusInput = document.getElementById("radius_meters");
+      const rentInput = document.getElementById("rent_monthly");
+      const budgetInput = document.getElementById("budget_monthly");
+      const submitButton = document.getElementById("submit-button");
+      const submitIcon = document.getElementById("submit-icon");
+      const submitLabel = document.getElementById("submit-label");
+      const detailLocateButton = document.getElementById("detail-locate-button");
+      const detailLocateIcon = document.getElementById("detail-locate-icon");
+      const detailLocateLabel = document.getElementById("detail-locate-label");
+      const clearPointButton = document.getElementById("clear-point-button");
+      const zoomInButton = document.getElementById("zoom-in-button");
+      const zoomOutButton = document.getElementById("zoom-out-button");
+      const statusPill = document.getElementById("status-pill");
+      const errorBox = document.getElementById("error-box");
+      const mapFrame = document.getElementById("map-frame");
+      const mapImage = document.getElementById("map-image");
+      const mapPlaceholder = document.getElementById("map-placeholder");
+      const mapAddress = document.getElementById("map-address");
+      const coordinateText = document.getElementById("coordinate-text");
+      const candidateList = document.getElementById("candidate-list");
+      const emptyState = document.getElementById("empty-state");
+      const reportContent = document.getElementById("report-content");
+      const scoreCard = document.getElementById("score-card");
+      const totalScore = document.getElementById("total-score");
+      const levelText = document.getElementById("level-text");
+      const summaryText = document.getElementById("summary-text");
+      const metricList = document.getElementById("metric-list");
+      const modelInsights = document.getElementById("model-insights");
+      const poiSection = document.getElementById("poi-section");
+      const summaryGrid = document.getElementById("summary-grid");
+      const poiTable = document.getElementById("poi-table");
+
+      let selectedPoint = null;
+      let dragState = null;
+      let currentReport = null;
+      let activePoiTileKey = "total_poi_count";
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function renderCategoryMenu() {
+        const currentCategory = categoryInput.value.trim();
+        categoryMenu.innerHTML = categoryOptions
+          .map(
+            (option) => `
+              <button class="category-option ${option === currentCategory ? "active" : ""}" data-category-value="${escapeHtml(option)}" type="button">
+                ${escapeHtml(option)}
+              </button>
+            `,
+          )
+          .join("");
+      }
+
+      function openCategoryMenu() {
+        renderCategoryMenu();
+        categoryMenu.classList.remove("hidden");
+        categoryToggleButton.setAttribute("aria-expanded", "true");
+      }
+
+      function closeCategoryMenu() {
+        categoryMenu.classList.add("hidden");
+        categoryToggleButton.setAttribute("aria-expanded", "false");
+      }
+
+      function toggleCategoryMenu() {
+        if (categoryMenu.classList.contains("hidden")) {
+          openCategoryMenu();
+          categoryInput.focus();
+          return;
+        }
+        closeCategoryMenu();
+      }
+
+      function numericValue(id) {
+        const value = document.getElementById(id).value.trim();
+        return value ? Number(value) : null;
+      }
+
+      function roundCoordinate(value) {
+        return Number(value.toFixed(6));
+      }
+
+      function locationText() {
+        return [districtAreaInput.value.trim(), addressInput.value.trim()].filter(Boolean).join(" ");
+      }
+
+      function precisePointLabel() {
+        return addressInput.value.trim() || districtAreaInput.value.trim() || "地图精确点";
+      }
+
+      function payloadFromForm() {
+        const payload = {
+          city: cityInput.value.trim(),
+          address: locationText() || selectedPoint?.label || null,
+          category: categoryInput.value.trim(),
+          radius_meters: Number(radiusInput.value),
+          rent_monthly: numericValue("rent_monthly"),
+          budget_monthly: numericValue("budget_monthly"),
+        };
+
+        if (selectedPoint) {
+          payload.longitude = roundCoordinate(selectedPoint.longitude);
+          payload.latitude = roundCoordinate(selectedPoint.latitude);
+        }
+
+        return payload;
+      }
+
+      function setLoading(isLoading) {
+        submitButton.disabled = isLoading;
+        submitIcon.textContent = isLoading ? "◐" : "▶";
+        submitLabel.textContent = isLoading ? "分析中" : "生成报告";
+        submitIcon.classList.toggle("spin", isLoading);
+        if (isLoading) {
+          statusPill.textContent = "分析中";
+          statusPill.classList.remove("ready");
+        }
+      }
+
+      function setDetailLocateLoading(isLoading) {
+        detailLocateButton.disabled = isLoading;
+        detailLocateIcon.textContent = isLoading ? "◐" : "⌕";
+        detailLocateLabel.textContent = isLoading ? "搜索中" : "搜索详细";
+        detailLocateIcon.classList.toggle("spin", isLoading);
+      }
+
+      function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+      }
+
+      function clearError() {
+        errorBox.textContent = "";
+        errorBox.classList.add("hidden");
+      }
+
+      function resetSelectedPoint() {
+        selectedPoint = null;
+        dragState = null;
+        mapImage.style.transform = "";
+        mapImage.removeAttribute("src");
+        mapImage.classList.add("hidden");
+        mapFrame.classList.add("empty");
+        mapFrame.classList.remove("dragging");
+        mapFrame.classList.remove("loading");
+        mapPlaceholder.textContent = "未定位";
+        mapPlaceholder.classList.remove("hidden");
+        mapAddress.textContent = "未定位";
+        coordinateText.textContent = "经纬度待确认";
+        candidateList.innerHTML = "";
+        candidateList.classList.add("hidden");
+        clearPointButton.disabled = true;
+      }
+
+      function buildStaticMapUrl() {
+        const params = new URLSearchParams({
+          longitude: String(roundCoordinate(selectedPoint.longitude)),
+          latitude: String(roundCoordinate(selectedPoint.latitude)),
+          zoom: String(selectedPoint.zoom || DEFAULT_MAP_ZOOM),
+          width: String(STATIC_MAP_WIDTH),
+          height: String(STATIC_MAP_HEIGHT),
+          cache: String(Date.now()),
+        });
+        return `${API_BASE_URL}/api/map/static?${params.toString()}`;
+      }
+
+      function renderSelectedPoint(label) {
+        if (!selectedPoint) {
+          resetSelectedPoint();
+          return;
+        }
+
+        mapFrame.classList.remove("empty");
+        mapFrame.classList.add("loading");
+        mapPlaceholder.classList.add("hidden");
+        mapImage.classList.remove("hidden");
+        mapImage.src = buildStaticMapUrl();
+        mapAddress.textContent = label || selectedPoint.label || "地图选点";
+        const pointName = selectedPoint.mode === "precise" ? "精确点" : "候选点";
+        coordinateText.textContent = `${pointName} 经度 ${selectedPoint.longitude.toFixed(6)} / 纬度 ${selectedPoint.latitude.toFixed(6)}`;
+        clearPointButton.disabled = false;
+      }
+
+      function candidateLabel(candidate) {
+        return candidate.name || candidate.address || "候选地点";
+      }
+
+      function candidateAddress(candidate) {
+        const area = [candidate.district, candidate.address].filter(Boolean).join(" ");
+        return area || candidate.type_name || "暂无详细地址";
+      }
+
+      function updateCandidateSelect(candidate, index) {
+        const selectedTitle = candidateList.querySelector("[data-candidate-selected-title]");
+        const selectedAddress = candidateList.querySelector("[data-candidate-selected-address]");
+        const toggle = candidateList.querySelector("[data-candidate-toggle]");
+        if (!selectedTitle || !selectedAddress || !toggle) return;
+
+        selectedTitle.textContent = candidateLabel(candidate);
+        selectedAddress.textContent = candidateAddress(candidate);
+        candidateList.dataset.selectedIndex = String(index);
+        toggle.setAttribute("aria-expanded", "false");
+        candidateList.querySelector("[data-candidate-menu]")?.classList.add("hidden");
+        candidateList
+          .querySelectorAll(".candidate-option")
+          .forEach((button) => button.classList.toggle("active", button.dataset.candidateIndex === String(index)));
+      }
+
+      function toggleCandidateMenu() {
+        const menu = candidateList.querySelector("[data-candidate-menu]");
+        const toggle = candidateList.querySelector("[data-candidate-toggle]");
+        if (!menu || !toggle) return;
+
+        const willOpen = menu.classList.contains("hidden");
+        if (willOpen) {
+          menu.classList.remove("hidden");
+          const selectRect = candidateList.querySelector(".candidate-select")?.getBoundingClientRect();
+          if (selectRect) {
+            const spaceBelow = window.innerHeight - selectRect.bottom - 12;
+            const spaceAbove = selectRect.top - 12;
+            const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+            const availableSpace = Math.max(150, Math.min(260, openUp ? spaceAbove : spaceBelow));
+            menu.classList.toggle("open-up", openUp);
+            menu.style.maxHeight = `${availableSpace}px`;
+          }
+        } else {
+          menu.classList.add("hidden");
+        }
+        toggle.setAttribute("aria-expanded", String(willOpen));
+      }
+
+      function closeCandidateMenu() {
+        const menu = candidateList.querySelector("[data-candidate-menu]");
+        const toggle = candidateList.querySelector("[data-candidate-toggle]");
+        if (!menu || !toggle) return;
+
+        menu.classList.add("hidden");
+        menu.classList.remove("open-up");
+        menu.style.removeProperty("max-height");
+        toggle.setAttribute("aria-expanded", "false");
+      }
+
+      function selectCandidate(candidate, index = 0) {
+        selectedPoint = {
+          longitude: candidate.longitude,
+          latitude: candidate.latitude,
+          label: candidateLabel(candidate),
+          mode: "candidate",
+          zoom: PRECISE_MAP_ZOOM,
+        };
+        renderSelectedPoint(selectedPoint.label);
+        updateCandidateSelect(candidate, index);
+        statusPill.textContent = "候选点已定位";
+        statusPill.classList.add("ready");
+      }
+
+      function renderCandidates(candidates) {
+        if (!candidates.length) {
+          candidateList.innerHTML = "";
+          candidateList.classList.add("hidden");
+          return;
+        }
+
+        const firstCandidate = candidates[0];
+        candidateList.classList.remove("hidden");
+        candidateList.innerHTML = `
+          <div class="candidate-select">
+            <button class="candidate-select-button" data-candidate-toggle type="button" aria-expanded="false">
+              <span class="candidate-selected-copy">
+                <span>真实地点</span>
+                <strong data-candidate-selected-title>${escapeHtml(candidateLabel(firstCandidate))}</strong>
+                <em data-candidate-selected-address>${escapeHtml(candidateAddress(firstCandidate))}</em>
+              </span>
+              <span class="candidate-select-arrow">▾</span>
+            </button>
+            <div class="candidate-menu hidden" data-candidate-menu>
+              ${candidates
+                .map(
+                  (candidate, index) => `
+                    <button class="candidate-option ${index === 0 ? "active" : ""}" data-candidate-index="${index}" type="button">
+                      <strong>${escapeHtml(candidateLabel(candidate))}</strong>
+                      <span>${escapeHtml(candidateAddress(candidate))}</span>
+                    </button>
+                  `,
+                )
+                .join("")}
+            </div>
+          </div>
+        `;
+        candidateList.dataset.candidates = JSON.stringify(candidates);
+        candidateList.dataset.selectedIndex = "0";
+      }
+
+      async function locateByText(scope, options) {
+        clearError();
+        const city = cityInput.value.trim();
+        if (!city || !scope) {
+          showError(options.emptyMessage);
+          return;
+        }
+
+        options.setLoading(true);
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/map/search`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ city, keywords: scope }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.detail || `搜索失败：${response.status}`);
+          }
+          const candidates = data.candidates || [];
+          if (!candidates.length) {
+            throw new Error("没有找到匹配地点，请换一个更具体的名称。");
+          }
+
+          renderCandidates(candidates);
+          selectCandidate(candidates[0], 0);
+          statusPill.textContent = `已找到 ${candidates.length} 个候选地点`;
+          statusPill.classList.add("ready");
+        } catch (error) {
+          showError(error.message || options.failMessage);
+        } finally {
+          options.setLoading(false);
+        }
+      }
+
+      function locateDetail() {
+        const scope = locationText();
+        locateByText(scope, {
+          mode: "candidate",
+          zoom: PRECISE_MAP_ZOOM,
+          statusText: "候选点已定位",
+          emptyMessage: "请先填写城市和详细位置，或至少填写区域/商圈/街道。",
+          failMessage: "搜索详细位置失败",
+          setLoading: setDetailLocateLoading,
+        });
+      }
+
+      function toneForLevel(level) {
+        if (level === "推荐") return "good";
+        if (level === "谨慎推荐") return "watch";
+        return "risk";
+      }
+
+      function renderReport(report) {
+        currentReport = report;
+        emptyState.classList.add("hidden");
+        reportContent.classList.remove("hidden");
+        statusPill.textContent = "已生成报告";
+        statusPill.classList.add("ready");
+
+        scoreCard.className = `score-card ${toneForLevel(report.level)}`;
+        totalScore.textContent = report.total_score;
+        levelText.textContent = report.level;
+        summaryText.textContent = report.summary;
+
+        metricList.innerHTML = report.dimensions
+          .map(
+            (item) => `
+              <div class="metric-row">
+                <span>${escapeHtml(item.name)}</span>
+                <div>
+                  <strong>${escapeHtml(item.score)}</strong>
+                  <p>${escapeHtml(item.reason)}</p>
+                </div>
+              </div>
+            `,
+          )
+          .join("");
+
+        renderModelInsights(report.model_insights);
+        renderPoi(report);
+      }
+
+      function renderModelInsights(insights) {
+        if (!insights || !insights.irs || !insights.huff) {
+          modelInsights.classList.add("hidden");
+          modelInsights.innerHTML = "";
+          return;
+        }
+
+        const irs = insights.irs;
+        const huff = insights.huff;
+        const calibration = insights.calibration || {};
+        const confidence = calibration.data_confidence || {};
+        const capReasons = calibration.applied_caps || [];
+        const probability = Math.round((Number(huff.capture_probability) || 0) * 100);
+        modelInsights.classList.remove("hidden");
+        modelInsights.innerHTML = `
+          <div class="model-insight-header">
+            <strong>模型模拟</strong>
+            <span>${escapeHtml(insights.version || "规则模型")}</span>
+          </div>
+          <div class="model-insight-grid">
+            <div class="model-insight-card">
+              <span>${escapeHtml(irs.name || "IRS")}</span>
+              <strong>${escapeHtml(irs.status || "-")}</strong>
+              <p>${escapeHtml(irs.explanation || "")}</p>
+            </div>
+            <div class="model-insight-card">
+              <span>${escapeHtml(huff.name || "哈夫模型")}</span>
+              <strong>${probability}%</strong>
+              <p>${escapeHtml(huff.explanation || "")}</p>
+            </div>
+            <div class="model-insight-card calibration-card">
+              <span>${escapeHtml(calibration.name || "保守校准")}</span>
+              <strong>${escapeHtml(calibration.final_score ?? "-")}分</strong>
+              <p>${escapeHtml(calibration.explanation || "")}</p>
+              <p class="model-note">数据置信度：${escapeHtml(confidence.level || "-")}，样本量 ${escapeHtml(confidence.observed_signal_count ?? "-")}。</p>
+              ${
+                capReasons.length
+                  ? `<p class="model-note">${escapeHtml(capReasons.map((item) => item.reason).join(" "))}</p>`
+                  : ""
+              }
+            </div>
+          </div>
+          <p class="model-disclaimer">${escapeHtml(confidence.explanation || insights.disclaimer || "")}</p>
+          <p class="model-disclaimer">${escapeHtml(insights.disclaimer || "")}</p>
+        `;
+      }
+
+      function renderPoi(report) {
+        if (!report.poi_summary) return;
+        poiSection.classList.remove("hidden");
+        const activeTile = summaryTiles.find((tile) => tile.key === activePoiTileKey) || summaryTiles[0];
+        summaryGrid.innerHTML = summaryTiles
+          .map(
+            (tile) => `
+              <button class="summary-tile ${tile.key === activeTile.key ? "active" : ""}" data-summary-key="${tile.key}" type="button">
+                <span class="tile-icon">${escapeHtml(tile.icon)}</span>
+                <span>${escapeHtml(tile.label)}</span>
+                <strong>${report.poi_summary[tile.key] ?? 0}</strong>
+              </button>
+            `,
+          )
+          .join("");
+
+        renderPoiDetails(report, activeTile);
+      }
+
+      function filterPois(report, tile) {
+        const pois = report.poi_sample || [];
+        if (!tile.group) return pois;
+        return pois.filter((poi) => {
+          if (poi.category_group !== tile.group) return false;
+          if (tile.maxDistance === undefined) return true;
+          return poi.distance_meters !== null && poi.distance_meters !== undefined && poi.distance_meters <= tile.maxDistance;
+        });
+      }
+
+      function poiDistanceText(poi) {
+        return poi.distance_meters === null || poi.distance_meters === undefined ? "-" : `${poi.distance_meters} m`;
+      }
+
+      function renderPoiDetails(report, tile) {
+        const pois = filterPois(report, tile);
+        const rows = pois
+          .map(
+            (poi) => `
+              <div class="poi-row">
+                <span>${escapeHtml(poi.name)}</span>
+                <span>${escapeHtml(categoryLabels[poi.category_group] || poi.category_group)}</span>
+                <span>${poiDistanceText(poi)}</span>
+                <span>${escapeHtml(poi.address || "-")}</span>
+                <span>${escapeHtml(poi.type_name || "-")}</span>
+              </div>
+            `,
+          )
+          .join("");
+
+        poiTable.innerHTML = `
+          <div class="poi-detail-title">
+            <strong>${escapeHtml(tile.title)}</strong>
+            <span>${pois.length} 条明细</span>
+          </div>
+          <div class="poi-row header">
+            <span>名称</span>
+            <span>分类</span>
+            <span>距离</span>
+            <span>地址</span>
+            <span>类型</span>
+          </div>
+          ${rows || `<div class="poi-empty">暂无可展示明细</div>`}
+        `;
+      }
+
+      function lonLatToWorld(longitude, latitude, zoom) {
+        const worldSize = 256 * 2 ** zoom;
+        const sinLat = Math.sin((latitude * Math.PI) / 180);
+        const safeSinLat = Math.min(Math.max(sinLat, -0.9999), 0.9999);
+        return {
+          x: ((longitude + 180) / 360) * worldSize,
+          y: (0.5 - Math.log((1 + safeSinLat) / (1 - safeSinLat)) / (4 * Math.PI)) * worldSize,
+        };
+      }
+
+      function worldToLonLat(x, y, zoom) {
+        const worldSize = 256 * 2 ** zoom;
+        return {
+          longitude: (x / worldSize) * 360 - 180,
+          latitude: (Math.atan(Math.sinh(Math.PI - (2 * Math.PI * y) / worldSize)) * 180) / Math.PI,
+        };
+      }
+
+      function clampZoom(zoom) {
+        return Math.max(MIN_MAP_ZOOM, Math.min(MAX_MAP_ZOOM, zoom));
+      }
+
+      function currentZoom() {
+        return clampZoom(selectedPoint?.zoom || DEFAULT_MAP_ZOOM);
+      }
+
+      function pointFromViewportOffset(offsetX, offsetY, basePoint = selectedPoint) {
+        if (!basePoint) return null;
+        const rect = mapImage.getBoundingClientRect();
+        if (!rect.width || !rect.height) return basePoint;
+
+        const imageWidth = mapImage.naturalWidth || STATIC_MAP_WIDTH;
+        const imageHeight = mapImage.naturalHeight || STATIC_MAP_HEIGHT;
+        const zoom = clampZoom(basePoint.zoom || DEFAULT_MAP_ZOOM);
+        const center = lonLatToWorld(basePoint.longitude, basePoint.latitude, zoom);
+
+        return worldToLonLat(
+          center.x + offsetX * imageWidth,
+          center.y + offsetY * imageHeight,
+          zoom,
+        );
+      }
+
+      function pointFromMapClick(event) {
+        const rect = mapImage.getBoundingClientRect();
+        const offsetX = (event.clientX - rect.left) / rect.width - 0.5;
+        const offsetY = (event.clientY - rect.top) / rect.height - 0.5;
+        return pointFromViewportOffset(offsetX, offsetY);
+      }
+
+      function pointFromMapDrag(deltaX, deltaY) {
+        const rect = mapImage.getBoundingClientRect();
+        const offsetX = rect.width ? -deltaX / rect.width : 0;
+        const offsetY = rect.height ? -deltaY / rect.height : 0;
+        return pointFromViewportOffset(offsetX, offsetY, dragState?.startPoint);
+      }
+
+      function setPrecisePoint(point, label = precisePointLabel(), zoom = currentZoom()) {
+        if (!point) return;
+        selectedPoint = {
+          longitude: point.longitude,
+          latitude: point.latitude,
+          label,
+          mode: "precise",
+          zoom: clampZoom(zoom),
+        };
+        renderSelectedPoint(selectedPoint.label);
+        statusPill.textContent = "精确点已选择";
+        statusPill.classList.add("ready");
+      }
+
+      function zoomMap(delta) {
+        if (!selectedPoint) {
+          showError("请先搜索详细位置。");
+          return;
+        }
+        selectedPoint = {
+          ...selectedPoint,
+          zoom: clampZoom(currentZoom() + delta),
+        };
+        renderSelectedPoint(selectedPoint.label);
+      }
+
+      detailLocateButton.addEventListener("click", locateDetail);
+      categoryToggleButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        toggleCategoryMenu();
+      });
+
+      categoryMenu.addEventListener("click", (event) => {
+        const item = event.target.closest("[data-category-value]");
+        if (!item) return;
+        categoryInput.value = item.dataset.categoryValue;
+        categoryInput.dispatchEvent(new Event("input", { bubbles: true }));
+        closeCategoryMenu();
+        categoryInput.focus();
+      });
+
+      categoryInput.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          openCategoryMenu();
+        }
+        if (event.key === "Escape") {
+          closeCategoryMenu();
+        }
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".category-field")) {
+          closeCategoryMenu();
+        }
+        if (!event.target.closest("#candidate-list")) {
+          closeCandidateMenu();
+        }
+      });
+
+      candidateList.addEventListener("click", (event) => {
+        const toggle = event.target.closest("[data-candidate-toggle]");
+        if (toggle) {
+          event.preventDefault();
+          toggleCandidateMenu();
+          return;
+        }
+
+        const item = event.target.closest("[data-candidate-index]");
+        if (!item) return;
+        const candidates = JSON.parse(candidateList.dataset.candidates || "[]");
+        const index = Number(item.dataset.candidateIndex);
+        const candidate = candidates[index];
+        if (!candidate) return;
+        selectCandidate(candidate, index);
+      });
+      summaryGrid.addEventListener("click", (event) => {
+        const item = event.target.closest("[data-summary-key]");
+        if (!item || !currentReport) return;
+        activePoiTileKey = item.dataset.summaryKey;
+        renderPoi(currentReport);
+      });
+      clearPointButton.addEventListener("click", () => {
+        resetSelectedPoint();
+        statusPill.textContent = "等待分析";
+        statusPill.classList.remove("ready");
+      });
+
+      zoomInButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        zoomMap(1);
+      });
+
+      zoomOutButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        zoomMap(-1);
+      });
+
+      mapImage.addEventListener("pointerdown", (event) => {
+        if (!selectedPoint || mapImage.classList.contains("hidden")) return;
+        mapImage.setPointerCapture(event.pointerId);
+        dragState = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          lastX: event.clientX,
+          lastY: event.clientY,
+          startPoint: { ...selectedPoint },
+          moved: false,
+        };
+        mapFrame.classList.add("dragging");
+      });
+
+      mapImage.addEventListener("pointermove", (event) => {
+        if (!dragState || dragState.pointerId !== event.pointerId) return;
+        const deltaX = event.clientX - dragState.startX;
+        const deltaY = event.clientY - dragState.startY;
+        dragState.lastX = event.clientX;
+        dragState.lastY = event.clientY;
+        dragState.moved = dragState.moved || Math.hypot(deltaX, deltaY) > 4;
+        if (dragState.moved) {
+          mapImage.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+        }
+      });
+
+      mapImage.addEventListener("pointerup", (event) => {
+        if (!dragState || dragState.pointerId !== event.pointerId) return;
+        const deltaX = event.clientX - dragState.startX;
+        const deltaY = event.clientY - dragState.startY;
+        const wasDrag = dragState.moved;
+        const nextPoint = wasDrag ? pointFromMapDrag(deltaX, deltaY) : pointFromMapClick(event);
+        mapImage.style.transform = "";
+        mapFrame.classList.remove("dragging");
+        dragState = null;
+        setPrecisePoint(nextPoint, precisePointLabel(), wasDrag ? currentZoom() : PRECISE_MAP_ZOOM);
+      });
+
+      mapImage.addEventListener("pointercancel", () => {
+        mapImage.style.transform = "";
+        mapFrame.classList.remove("dragging");
+        dragState = null;
+      });
+
+      mapFrame.addEventListener(
+        "wheel",
+        (event) => {
+          if (!selectedPoint) return;
+          event.preventDefault();
+          zoomMap(event.deltaY < 0 ? 1 : -1);
+        },
+        { passive: false },
+      );
+
+      mapImage.addEventListener("load", () => {
+        mapFrame.classList.remove("loading");
+      });
+
+      mapImage.addEventListener("error", () => {
+        mapFrame.classList.remove("loading");
+        mapImage.classList.add("hidden");
+        mapPlaceholder.textContent = "地图加载失败";
+        mapPlaceholder.classList.remove("hidden");
+      });
+
+      [cityInput, districtAreaInput, addressInput].forEach((input) => {
+        input.addEventListener("input", () => {
+          if (selectedPoint) resetSelectedPoint();
+          statusPill.textContent = "等待分析";
+          statusPill.classList.remove("ready");
+        });
+      });
+
+      [categoryInput, radiusInput, rentInput, budgetInput].forEach((input) => {
+        input.addEventListener("input", () => {
+          statusPill.textContent = "等待分析";
+          statusPill.classList.remove("ready");
+        });
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        clearError();
+        setLoading(true);
+
+        try {
+          if (!categoryInput.value.trim()) {
+            throw new Error("请填写开店品类。");
+          }
+          const response = await fetch(`${API_BASE_URL}/api/analysis`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payloadFromForm()),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.detail || `请求失败：${response.status}`);
+          }
+          renderReport(data);
+        } catch (error) {
+          statusPill.textContent = "分析失败";
+          statusPill.classList.remove("ready");
+          showError(error.message || "分析失败");
+        } finally {
+          setLoading(false);
+        }
+      });
+    </script>
+  </body>
+</html>

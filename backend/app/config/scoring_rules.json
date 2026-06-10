@@ -1,0 +1,158 @@
+{
+  "version": "stage3_rules_v2_conservative",
+  "weights": {
+    "客流潜力": 0.25,
+    "竞争压力": 0.25,
+    "消费匹配": 0.15,
+    "成本压力": 0.15,
+    "交通可达": 0.1,
+    "经营风险": 0.1
+  },
+  "levels": [
+    { "min_score": 80, "level": "推荐" },
+    { "min_score": 60, "level": "谨慎推荐" },
+    { "min_score": 40, "level": "高风险" },
+    { "min_score": 0, "level": "不建议" }
+  ],
+  "traffic": {
+    "base": 10,
+    "residential_poi_count": 1.8,
+    "office_poi_count": 1.6,
+    "school_poi_count": 2.2,
+    "transit_poi_count": 3.0,
+    "commercial_poi_count": 1.6,
+    "complementary_poi_count": 1.0
+  },
+  "competition": {
+    "penalty_500m": 10,
+    "penalty_1000m": 4,
+    "strong_competitor_threshold_500m": 8,
+    "total_score_caps": [
+      {
+        "competitor_count_500m_min": 12,
+        "max_total_score": 55,
+        "reason": "500米内同品类竞品达到12家以上，属于强竞争密集区，总分封顶为55分。"
+      },
+      {
+        "competitor_count_500m_min": 8,
+        "max_total_score": 68,
+        "reason": "500米内同品类竞品达到8家以上，短距离分流明显，总分封顶为68分。"
+      },
+      {
+        "competitor_count_1000m_min": 20,
+        "max_total_score": 70,
+        "reason": "1000米内同品类竞品达到20家以上，区域供给偏密，总分封顶为70分。"
+      }
+    ]
+  },
+  "category_match": {
+    "base": 38,
+    "default": {
+      "residential_poi_count": 1.2,
+      "office_poi_count": 1.2,
+      "school_poi_count": 1.0,
+      "transit_poi_count": 0.8,
+      "commercial_poi_count": 1.4,
+      "complementary_poi_count": 1.0
+    },
+    "profiles": {
+      "奶茶": {
+        "residential_poi_count": 1.5,
+        "office_poi_count": 1.2,
+        "school_poi_count": 1.4,
+        "transit_poi_count": 0.8,
+        "commercial_poi_count": 1.6,
+        "complementary_poi_count": 1.3
+      },
+      "咖啡": {
+        "residential_poi_count": 0.9,
+        "office_poi_count": 2.0,
+        "school_poi_count": 1.0,
+        "transit_poi_count": 0.8,
+        "commercial_poi_count": 1.5,
+        "complementary_poi_count": 1.1
+      },
+      "快餐": {
+        "residential_poi_count": 1.0,
+        "office_poi_count": 1.8,
+        "school_poi_count": 1.2,
+        "transit_poi_count": 1.0,
+        "commercial_poi_count": 1.2,
+        "complementary_poi_count": 1.1
+      },
+      "便利": {
+        "residential_poi_count": 1.8,
+        "office_poi_count": 1.4,
+        "school_poi_count": 0.8,
+        "transit_poi_count": 1.2,
+        "commercial_poi_count": 1.0,
+        "complementary_poi_count": 0.8
+      },
+      "美甲": {
+        "residential_poi_count": 1.7,
+        "office_poi_count": 1.2,
+        "school_poi_count": 0.8,
+        "transit_poi_count": 0.6,
+        "commercial_poi_count": 1.5,
+        "complementary_poi_count": 1.0
+      },
+      "生鲜": {
+        "residential_poi_count": 2.2,
+        "office_poi_count": 0.8,
+        "school_poi_count": 0.7,
+        "transit_poi_count": 0.7,
+        "commercial_poi_count": 0.9,
+        "complementary_poi_count": 0.8
+      }
+    }
+  },
+  "cost": {
+    "default_score": 55,
+    "rent_budget_multiplier": 220,
+    "warning_ratio": 0.2,
+    "high_ratio": 0.3
+  },
+  "transit": {
+    "base": 25,
+    "transit_poi_count": 9,
+    "commercial_bonus": 0.25
+  },
+  "risk": {
+    "base": 80,
+    "competitor_500m_penalty": 4,
+    "competitor_1000m_penalty": 1.5,
+    "rent_ratio_warning": 0.18,
+    "rent_ratio_penalty_multiplier": 180,
+    "low_traffic_threshold": 55,
+    "low_traffic_penalty": 15,
+    "single_customer_group_penalty": 12
+  },
+  "data_confidence": {
+    "medium_signal_count": 20,
+    "high_signal_count": 60
+  },
+  "irs": {
+    "demand_weights": {
+      "residential_poi_count": 1.2,
+      "office_poi_count": 1.1,
+      "school_poi_count": 1.4,
+      "transit_poi_count": 0.6,
+      "commercial_poi_count": 1.0,
+      "complementary_poi_count": 0.8
+    },
+    "supply_weights": {
+      "competitor_count_1000m": 1.0,
+      "commercial_poi_count": 0.08,
+      "complementary_poi_count": 0.12
+    },
+    "balanced_threshold": 0.55,
+    "saturated_threshold": 0.9
+  },
+  "huff": {
+    "target_base_attractiveness": 1.0,
+    "traffic_attractiveness_multiplier": 0.012,
+    "cost_penalty_multiplier": 0.004,
+    "near_competitor_attractiveness": 0.45,
+    "far_competitor_attractiveness": 0.16
+  }
+}

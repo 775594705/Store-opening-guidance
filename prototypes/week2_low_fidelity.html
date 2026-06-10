@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第2周低保真原型 - 开店选址报告</title>
+    <style>
+      :root {
+        color: #1f2933;
+        background: #f3f5f7;
+        font-family:
+          "Microsoft YaHei",
+          "PingFang SC",
+          system-ui,
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+      }
+
+      .prototype-shell {
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      .workspace {
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .eyebrow {
+        margin: 0 0 4px;
+        color: #667789;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 0;
+        font-size: 28px;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin-bottom: 14px;
+        font-size: 19px;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 15px;
+      }
+
+      .nav {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .nav button,
+      .secondary-button,
+      .ghost-button,
+      .primary-button {
+        min-height: 40px;
+        border-radius: 6px;
+        padding: 9px 13px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .nav button {
+        border: 1px solid #cfd8e3;
+        color: #415365;
+        background: #ffffff;
+      }
+
+      .nav button.active {
+        border-color: #285f9e;
+        color: #174e86;
+        background: #eaf3fc;
+      }
+
+      .primary-button {
+        width: 100%;
+        color: #ffffff;
+        background: #2769ad;
+      }
+
+      .secondary-button {
+        border: 1px solid #a7bfd8;
+        color: #1f5f98;
+        background: #edf5fc;
+      }
+
+      .ghost-button {
+        border: 1px solid #cfd8e3;
+        color: #536778;
+        background: #ffffff;
+      }
+
+      .screen {
+        display: none;
+      }
+
+      .screen.active {
+        display: block;
+      }
+
+      .layout-grid {
+        display: grid;
+        grid-template-columns: minmax(340px, 0.9fr) minmax(420px, 1.1fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .panel {
+        border: 1px solid #d6dee7;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 18px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 7px;
+        color: #394c5d;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      input,
+      select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid #cbd5df;
+        border-radius: 6px;
+        padding: 9px 11px;
+        color: #1f2933;
+        background: #ffffff;
+      }
+
+      .map-toolbar,
+      .report-actions,
+      .split-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .map-toolbar {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e4ebf2;
+      }
+
+      .map-title {
+        display: grid;
+        gap: 4px;
+      }
+
+      .map-title span,
+      .muted,
+      .meta {
+        color: #667789;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .map-title strong {
+        color: #22384c;
+      }
+
+      .map-box {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #cbd5df;
+        border-radius: 8px;
+        aspect-ratio: 2 / 1;
+        margin-top: 12px;
+        background:
+          linear-gradient(#dfe6ed 1px, transparent 1px),
+          linear-gradient(90deg, #dfe6ed 1px, transparent 1px),
+          #f9fbfd;
+        background-size: 32px 32px;
+        cursor: crosshair;
+      }
+
+      .map-street {
+        position: absolute;
+        left: -12%;
+        right: -12%;
+        top: 44%;
+        height: 34px;
+        border: 1px solid #d6c18f;
+        background: #f5d994;
+        transform: rotate(-6deg);
+      }
+
+      .map-street.secondary {
+        top: 67%;
+        height: 22px;
+        background: #d7ebf2;
+        transform: rotate(3deg);
+      }
+
+      .map-label {
+        position: absolute;
+        min-width: 64px;
+        border: 1px solid #cbd5df;
+        border-radius: 6px;
+        padding: 6px 8px;
+        color: #46596b;
+        background: #ffffff;
+        font-size: 12px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .map-label.one {
+        left: 11%;
+        top: 18%;
+      }
+
+      .map-label.two {
+        right: 16%;
+        top: 24%;
+      }
+
+      .map-label.three {
+        left: 38%;
+        bottom: 16%;
+      }
+
+      .marker {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 22px;
+        height: 22px;
+        border: 3px solid #ffffff;
+        border-radius: 999px;
+        background: #d74f45;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        transform: translate(-50%, -50%);
+      }
+
+      .coord-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 10px;
+        color: #536778;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .preview-card {
+        display: grid;
+        gap: 12px;
+      }
+
+      .preview-map {
+        min-height: 180px;
+        border: 1px dashed #bdc8d4;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: #667789;
+        background: #f8fafc;
+        font-weight: 800;
+      }
+
+      .mini-list,
+      .risk-list,
+      .suggestion-list,
+      .history-list {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .mini-list li,
+      .risk-list li,
+      .suggestion-list li,
+      .history-item {
+        border: 1px solid #e1e7ee;
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: #fbfcfe;
+      }
+
+      .loading-shell {
+        max-width: 780px;
+        margin: 0 auto;
+      }
+
+      .progress-bar {
+        overflow: hidden;
+        height: 10px;
+        border-radius: 999px;
+        background: #dfe7ef;
+      }
+
+      .progress-fill {
+        width: 0%;
+        height: 100%;
+        background: #2769ad;
+        transition: width 0.35s ease;
+      }
+
+      .analysis-steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .step-card {
+        border: 1px solid #d7e0e9;
+        border-radius: 8px;
+        padding: 12px;
+        color: #536778;
+        background: #ffffff;
+        font-weight: 800;
+      }
+
+      .step-card.active {
+        border-color: #83add8;
+        color: #174e86;
+        background: #edf5fc;
+      }
+
+      .error-state {
+        display: none;
+        border: 1px solid #efc1c1;
+        border-radius: 8px;
+        margin-top: 16px;
+        padding: 12px;
+        color: #8a2323;
+        background: #fff3f3;
+      }
+
+      .error-state.visible {
+        display: block;
+      }
+
+      .report-grid {
+        display: grid;
+        grid-template-columns: minmax(420px, 1fr) minmax(320px, 0.8fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .score-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 8px;
+        margin-bottom: 14px;
+        padding: 18px;
+        background: #edf8f0;
+      }
+
+      .score-card strong {
+        display: block;
+        color: #1f4d78;
+        font-size: 48px;
+        line-height: 1;
+      }
+
+      .score-card p {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 900;
+      }
+
+      .metric-grid,
+      .summary-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .metric-row {
+        display: grid;
+        grid-template-columns: 104px 1fr 48px;
+        gap: 10px;
+        align-items: center;
+        border-top: 1px solid #e7edf3;
+        padding-top: 10px;
+      }
+
+      .meter {
+        overflow: hidden;
+        height: 8px;
+        border-radius: 999px;
+        background: #dfe7ef;
+      }
+
+      .meter span {
+        display: block;
+        height: 100%;
+        background: #2769ad;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .summary-tile {
+        border: 1px solid #e0e7ee;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcfe;
+      }
+
+      .summary-tile span {
+        display: block;
+        color: #667789;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .summary-tile strong {
+        color: #1f2933;
+        font-size: 28px;
+      }
+
+      .history-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 900px) {
+        .layout-grid,
+        .report-grid,
+        .analysis-steps {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .prototype-shell {
+          padding: 16px;
+        }
+
+        .topbar,
+        .form-grid,
+        .summary-grid,
+        .metric-row,
+        .map-toolbar,
+        .report-actions,
+        .split-row,
+        .history-item {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar,
+        .map-toolbar,
+        .report-actions,
+        .split-row {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="prototype-shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">第2周低保真原型</p>
+            <h1>开店选址分析</h1>
+          </div>
+          <nav class="nav" aria-label="页面导航">
+            <button class="active" data-target="input-screen" type="button">输入</button>
+            <button data-target="report-screen" type="button">报告</button>
+            <button data-target="history-screen" type="button">历史</button>
+          </nav>
+        </header>
+
+        <section class="screen active" id="input-screen">
+          <div class="layout-grid">
+            <section class="panel">
+              <h2>候选位置</h2>
+              <div class="form-grid">
+                <label>
+                  城市
+                  <input id="city" value="广州" />
+                </label>
+                <label>
+                  区域/商圈/街道
+                  <input id="area" value="天河区体育西路" />
+                </label>
+                <label>
+                  详细位置
+                  <input id="address" value="天环广场附近" />
+                </label>
+                <label>
+                  开店品类
+                  <input id="category" list="category-list" value="奶茶店" />
+                  <datalist id="category-list">
+                    <option value="奶茶店"></option>
+                    <option value="咖啡店"></option>
+                    <option value="轻食沙拉店"></option>
+                    <option value="美甲店"></option>
+                    <option value="便利店"></option>
+                  </datalist>
+                </label>
+                <label>
+                  分析半径
+                  <select id="radius">
+                    <option value="500">500 米</option>
+                    <option value="1000" selected>1000 米</option>
+                    <option value="1500">1500 米</option>
+                    <option value="3000">3000 米</option>
+                  </select>
+                </label>
+                <label>
+                  月租金
+                  <input id="rent" inputmode="numeric" value="18000" />
+                </label>
+                <label>
+                  月预算
+                  <input id="budget" inputmode="numeric" value="80000" />
+                </label>
+              </div>
+
+              <div class="map-toolbar">
+                <div class="map-title">
+                  <span>地图选点</span>
+                  <strong id="selected-place">未搜索</strong>
+                </div>
+                <button class="secondary-button" id="search-point" type="button">搜索详细</button>
+              </div>
+              <div class="map-box" id="map-box">
+                <div class="map-street"></div>
+                <div class="map-street secondary"></div>
+                <div class="map-label one">住宅区</div>
+                <div class="map-label two">写字楼</div>
+                <div class="map-label three">地铁站</div>
+                <div class="marker hidden" id="marker"></div>
+              </div>
+              <div class="coord-row">
+                <span id="coord-text">经纬度待确认</span>
+                <span>可点击地图微调</span>
+              </div>
+
+              <button class="primary-button" id="start-analysis" type="button">生成报告</button>
+            </section>
+
+            <aside class="panel preview-card">
+              <h2>将生成的报告</h2>
+              <div class="preview-map">评分 / 周边摘要 / 风险 / 建议</div>
+              <ul class="mini-list">
+                <li>综合评分和推荐等级</li>
+                <li>客流、竞品、交通、住宅、成本分项</li>
+                <li>周边 POI 数量摘要</li>
+                <li>风险提示和下一步行动</li>
+              </ul>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen" id="loading-screen">
+          <div class="loading-shell">
+            <section class="panel">
+              <div class="split-row">
+                <div>
+                  <p class="eyebrow">正在生成报告</p>
+                  <h2 id="loading-title">分析周边商圈</h2>
+                </div>
+                <button class="ghost-button" id="simulate-fail" type="button">模拟失败</button>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+              </div>
+              <div class="analysis-steps">
+                <div class="step-card active" data-step="0">商圈</div>
+                <div class="step-card" data-step="1">竞品</div>
+                <div class="step-card" data-step="2">交通</div>
+                <div class="step-card" data-step="3">住宅</div>
+              </div>
+              <div class="error-state" id="error-state">
+                <strong>分析失败</strong>
+                <p>周边数据暂时没有返回，可以重试或回到输入页调整位置。</p>
+                <button class="secondary-button" id="retry-analysis" type="button">重试分析</button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="screen" id="report-screen">
+          <div class="report-grid">
+            <section class="panel">
+              <div class="report-actions">
+                <div>
+                  <p class="eyebrow" id="report-location">广州 天河区体育西路</p>
+                  <h2 id="report-title">奶茶店选址报告</h2>
+                </div>
+                <button class="ghost-button" id="edit-params" type="button">修改参数</button>
+              </div>
+
+              <div class="score-card">
+                <div>
+                  <strong id="score-value">80</strong>
+                  <span class="muted">综合评分</span>
+                </div>
+                <p>推荐</p>
+              </div>
+
+              <h3>分项指标</h3>
+              <div class="metric-grid">
+                <div class="metric-row">
+                  <strong>客流潜力</strong>
+                  <div class="meter"><span style="width: 92%"></span></div>
+                  <span>92</span>
+                </div>
+                <div class="metric-row">
+                  <strong>竞争压力</strong>
+                  <div class="meter"><span style="width: 68%"></span></div>
+                  <span>68</span>
+                </div>
+                <div class="metric-row">
+                  <strong>消费匹配</strong>
+                  <div class="meter"><span style="width: 86%"></span></div>
+                  <span>86</span>
+                </div>
+                <div class="metric-row">
+                  <strong>成本压力</strong>
+                  <div class="meter"><span style="width: 62%"></span></div>
+                  <span>62</span>
+                </div>
+                <div class="metric-row">
+                  <strong>交通可达</strong>
+                  <div class="meter"><span style="width: 88%"></span></div>
+                  <span>88</span>
+                </div>
+              </div>
+            </section>
+
+            <aside class="panel">
+              <h2>地图周边摘要</h2>
+              <div class="summary-grid">
+                <div class="summary-tile"><span>总 POI</span><strong>151</strong></div>
+                <div class="summary-tile"><span>500m 竞品</span><strong>3</strong></div>
+                <div class="summary-tile"><span>住宅</span><strong>25</strong></div>
+                <div class="summary-tile"><span>办公</span><strong>27</strong></div>
+                <div class="summary-tile"><span>交通</span><strong>24</strong></div>
+                <div class="summary-tile"><span>商业</span><strong>28</strong></div>
+              </div>
+
+              <h3>主要风险</h3>
+              <ul class="risk-list">
+                <li>核心商圈租金压力较高，需要核实转让费和装修成本。</li>
+                <li>竞品密度不低，需要实地观察排队和价格带。</li>
+              </ul>
+
+              <h3>下一步建议</h3>
+              <ul class="suggestion-list">
+                <li>工作日午晚高峰和周末各踩点一次。</li>
+                <li>记录 500 米内竞品价格、客流和评价。</li>
+                <li>核算保本营业额后再谈租约。</li>
+              </ul>
+
+              <button class="primary-button" id="save-history" type="button">保存到历史</button>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen" id="history-screen">
+          <section class="panel">
+            <div class="split-row">
+              <div>
+                <p class="eyebrow">本地记录</p>
+                <h2>最近分析</h2>
+              </div>
+              <button class="ghost-button" id="clear-history" type="button">清空历史</button>
+            </div>
+            <ul class="history-list" id="history-list"></ul>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const screens = Array.from(document.querySelectorAll(".screen"));
+      const navButtons = Array.from(document.querySelectorAll(".nav button"));
+      const historyKey = "storeAdvisorPrototypeHistory";
+      const state = {
+        pointSelected: false,
+        coordinate: "113.322051,23.133314",
+        loadingTimer: null,
+      };
+
+      function showScreen(id) {
+        screens.forEach((screen) => screen.classList.toggle("active", screen.id === id));
+        navButtons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.target === id);
+        });
+        if (id === "history-screen") renderHistory();
+      }
+
+      function formSnapshot() {
+        return {
+          city: document.getElementById("city").value.trim(),
+          area: document.getElementById("area").value.trim(),
+          address: document.getElementById("address").value.trim(),
+          category: document.getElementById("category").value.trim(),
+          radius: document.getElementById("radius").value,
+          rent: document.getElementById("rent").value.trim(),
+          budget: document.getElementById("budget").value.trim(),
+          coordinate: state.coordinate,
+        };
+      }
+
+      function updateReport() {
+        const data = formSnapshot();
+        document.getElementById("report-title").textContent = `${data.category || "门店"}选址报告`;
+        document.getElementById("report-location").textContent = `${data.city || "城市"} ${data.area || ""} ${data.address || ""}`;
+      }
+
+      function selectPoint(xPercent = 52, yPercent = 48) {
+        const marker = document.getElementById("marker");
+        marker.classList.remove("hidden");
+        marker.style.left = `${xPercent}%`;
+        marker.style.top = `${yPercent}%`;
+        state.pointSelected = true;
+        state.coordinate = `113.${320000 + Math.round(xPercent * 42)},23.${130000 + Math.round(yPercent * 78)}`;
+        document.getElementById("selected-place").textContent = formSnapshot().address || formSnapshot().area || "候选点";
+        document.getElementById("coord-text").textContent = `精确点 ${state.coordinate}`;
+      }
+
+      function startLoading() {
+        clearTimeout(state.loadingTimer);
+        updateReport();
+        showScreen("loading-screen");
+        document.getElementById("error-state").classList.remove("visible");
+        const titles = ["分析周边商圈", "识别竞品密度", "判断交通可达", "汇总住宅和办公人群"];
+        const steps = Array.from(document.querySelectorAll(".step-card"));
+        let index = 0;
+
+        function tick() {
+          steps.forEach((step, stepIndex) => step.classList.toggle("active", stepIndex <= index));
+          document.getElementById("loading-title").textContent = titles[index];
+          document.getElementById("progress-fill").style.width = `${(index + 1) * 25}%`;
+          if (index >= titles.length - 1) {
+            state.loadingTimer = setTimeout(() => showScreen("report-screen"), 600);
+            return;
+          }
+          index += 1;
+          state.loadingTimer = setTimeout(tick, 520);
+        }
+
+        tick();
+      }
+
+      function showFailure() {
+        clearTimeout(state.loadingTimer);
+        document.getElementById("loading-title").textContent = "分析未完成";
+        document.getElementById("progress-fill").style.width = "58%";
+        document.getElementById("error-state").classList.add("visible");
+      }
+
+      function readHistory() {
+        try {
+          return JSON.parse(localStorage.getItem(historyKey) || "[]");
+        } catch {
+          return [];
+        }
+      }
+
+      function writeHistory(items) {
+        localStorage.setItem(historyKey, JSON.stringify(items.slice(0, 6)));
+      }
+
+      function saveHistory() {
+        const data = formSnapshot();
+        const item = {
+          id: Date.now(),
+          title: `${data.city} ${data.area}`,
+          subtitle: `${data.category} / ${state.coordinate}`,
+          score: document.getElementById("score-value").textContent,
+        };
+        writeHistory([item, ...readHistory()]);
+        showScreen("history-screen");
+      }
+
+      function renderHistory() {
+        const list = document.getElementById("history-list");
+        const items = readHistory();
+        if (!items.length) {
+          list.innerHTML = '<li class="history-item"><span>暂无历史记录</span><button class="secondary-button" data-new-analysis type="button">去分析</button></li>';
+          return;
+        }
+        list.innerHTML = items
+          .map(
+            (item) => `
+              <li class="history-item">
+                <div>
+                  <strong>${item.title}</strong>
+                  <p class="meta">${item.subtitle}</p>
+                </div>
+                <button class="secondary-button" data-open-report type="button">${item.score} 分</button>
+              </li>
+            `,
+          )
+          .join("");
+      }
+
+      navButtons.forEach((button) => {
+        button.addEventListener("click", () => showScreen(button.dataset.target));
+      });
+
+      document.getElementById("search-point").addEventListener("click", () => selectPoint());
+      document.getElementById("map-box").addEventListener("click", (event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        selectPoint(((event.clientX - rect.left) / rect.width) * 100, ((event.clientY - rect.top) / rect.height) * 100);
+      });
+      document.getElementById("start-analysis").addEventListener("click", () => {
+        if (!state.pointSelected) selectPoint();
+        startLoading();
+      });
+      document.getElementById("simulate-fail").addEventListener("click", showFailure);
+      document.getElementById("retry-analysis").addEventListener("click", startLoading);
+      document.getElementById("edit-params").addEventListener("click", () => showScreen("input-screen"));
+      document.getElementById("save-history").addEventListener("click", saveHistory);
+      document.getElementById("clear-history").addEventListener("click", () => {
+        writeHistory([]);
+        renderHistory();
+      });
+      document.getElementById("history-list").addEventListener("click", (event) => {
+        if (event.target.matches("[data-new-analysis]")) showScreen("input-screen");
+        if (event.target.matches("[data-open-report]")) showScreen("report-screen");
+      });
+    </script>
+  </body>
+</html>

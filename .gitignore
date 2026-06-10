@@ -1,0 +1,33 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Word temporary files and generated QA output
+~$*.docx
+*.tmp
+rendered_plan/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+.vite/
+.npm-cache/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
