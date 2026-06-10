@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>开店指导模拟预测软件 - 静态演示</title>
+    <style>
+      :root {
+        color: #342f50;
+        background: #eee9fb;
+        font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+        --ink: #342f50;
+        --ink-soft: #5d5778;
+        --muted: #817b9b;
+        --surface: #f7f3ff;
+        --surface-deep: #eee8fa;
+        --purple: #7764df;
+        --purple-deep: #5f4cc8;
+        --mint: #77d9bd;
+        --pink: #ff9db8;
+        --butter: #ffd68f;
+        --red: #ce5f73;
+        --shadow: 16px 16px 34px rgba(115, 101, 156, 0.18), -12px -12px 28px rgba(255, 255, 255, 0.86);
+        --shadow-soft: 10px 10px 22px rgba(115, 101, 156, 0.14), -8px -8px 18px rgba(255, 255, 255, 0.78);
+        --inset: inset 7px 7px 15px rgba(120, 105, 158, 0.14), inset -7px -7px 15px rgba(255, 255, 255, 0.82);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background:
+          linear-gradient(140deg, rgba(119, 100, 223, 0.16), rgba(255, 255, 255, 0) 38%),
+          linear-gradient(220deg, rgba(148, 220, 232, 0.2), rgba(255, 255, 255, 0) 34%),
+          linear-gradient(0deg, rgba(255, 214, 143, 0.16), rgba(255, 255, 255, 0) 46%),
+          #eee9fb;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        cursor: pointer;
+      }
+
+      .shell {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 30px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        color: var(--ink);
+        font-size: 30px;
+        line-height: 1.25;
+      }
+
+      h2 {
+        color: var(--purple-deep);
+        font-size: 19px;
+      }
+
+      .eyebrow,
+      .status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        border-radius: 999px;
+        padding: 5px 12px;
+        color: var(--purple-deep);
+        background: #f5f0ff;
+        box-shadow: var(--inset);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .eyebrow {
+        margin-bottom: 8px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(320px, 0.95fr) minmax(420px, 1.05fr);
+        gap: 22px;
+        align-items: start;
+      }
+
+      .panel {
+        border: 1px solid rgba(255, 255, 255, 0.68);
+        border-radius: 28px;
+        padding: 22px;
+        background: linear-gradient(145deg, #fbf9ff, var(--surface));
+        box-shadow: var(--shadow), inset 2px 2px 5px rgba(255, 255, 255, 0.64), inset -7px -7px 16px rgba(117, 101, 156, 0.08);
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-bottom: 18px;
+      }
+
+      .icon,
+      .tile-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 12px;
+        color: #fff;
+        background: linear-gradient(145deg, #a99cff, var(--purple));
+        box-shadow: var(--shadow-soft);
+        font-weight: 900;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 15px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        color: var(--ink-soft);
+        font-size: 14px;
+        font-weight: 900;
+      }
+
+      input,
+      select {
+        width: 100%;
+        min-height: 46px;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 18px;
+        padding: 10px 14px;
+        color: var(--ink);
+        background: var(--surface-deep);
+        box-shadow: var(--inset);
+      }
+
+      .map {
+        display: grid;
+        place-items: center;
+        min-height: 220px;
+        border-radius: 26px;
+        margin-top: 18px;
+        padding: 18px;
+        background:
+          radial-gradient(circle at 25% 30%, rgba(119, 100, 223, 0.24), transparent 28%),
+          radial-gradient(circle at 70% 65%, rgba(119, 217, 189, 0.26), transparent 28%),
+          linear-gradient(135deg, #efeaff, #f9f5ff);
+        box-shadow: var(--inset), var(--shadow-soft);
+        text-align: center;
+      }
+
+      .map strong {
+        display: block;
+        color: var(--purple-deep);
+        font-size: 22px;
+      }
+
+      .map span {
+        color: var(--muted);
+        font-weight: 900;
+      }
+
+      .primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 52px;
+        border-radius: 22px;
+        margin-top: 18px;
+        padding: 12px 16px;
+        color: #fff;
+        background: linear-gradient(145deg, #8b78f1, var(--purple-deep));
+        box-shadow: 12px 12px 24px rgba(95, 76, 200, 0.27), -7px -7px 18px rgba(255, 255, 255, 0.78);
+        font-weight: 900;
+      }
+
+      .score-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-radius: 26px;
+        padding: 20px;
+        margin-bottom: 16px;
+        color: #5a4627;
+        background: linear-gradient(145deg, #ffe0a1, #efb96a);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .score-card.risk {
+        color: #fff;
+        background: linear-gradient(145deg, #ffadc1, #d7647d);
+      }
+
+      .score-card.good {
+        color: #fff;
+        background: linear-gradient(145deg, #80dfc5, #4ab08c);
+      }
+
+      .score-card strong {
+        display: block;
+        font-size: 48px;
+        line-height: 1;
+      }
+
+      .score-card span,
+      .score-card p {
+        font-weight: 900;
+      }
+
+      .summary {
+        margin-bottom: 16px;
+        color: var(--ink-soft);
+        line-height: 1.68;
+      }
+
+      .metric-list,
+      .model,
+      .poi-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .metric {
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        gap: 14px;
+        border-radius: 18px;
+        padding: 13px 14px;
+        background: #f4efff;
+        box-shadow: var(--inset);
+      }
+
+      .metric span {
+        color: var(--purple-deep);
+        font-weight: 900;
+      }
+
+      .metric strong {
+        margin-right: 8px;
+      }
+
+      .model {
+        margin-top: 16px;
+      }
+
+      .model-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .model-card,
+      .poi-tile {
+        border-radius: 18px;
+        padding: 14px;
+        background: #f9f6ff;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .model-card.calibration {
+        grid-column: 1 / -1;
+      }
+
+      .model-card span,
+      .poi-tile span {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .model-card strong,
+      .poi-tile strong {
+        display: block;
+        color: var(--purple-deep);
+        font-size: 24px;
+        margin: 7px 0;
+      }
+
+      .model-card p,
+      .poi-tile p {
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .poi-section {
+        margin-top: 22px;
+      }
+
+      .poi-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+
+      .poi-tile {
+        text-align: center;
+      }
+
+      .poi-tile:nth-child(2) strong {
+        color: var(--red);
+      }
+
+      @media (max-width: 860px) {
+        .shell {
+          padding: 18px;
+        }
+
+        .topbar,
+        .grid {
+          display: grid;
+        }
+
+        .grid,
+        .form-grid,
+        .model-grid,
+        .poi-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">MVP 静态预览</div>
+          <h1>开店指导模拟预测软件</h1>
+        </div>
+        <div class="status" id="status">等待分析</div>
+      </header>
+
+      <section class="grid">
+        <form class="panel" id="demo-form">
+          <div class="panel-title">
+            <span class="icon">点</span>
+            <h2>候选位置</h2>
+          </div>
+          <div class="form-grid">
+            <label>
+              城市
+              <input id="city" value="广州" />
+            </label>
+            <label>
+              区域/商圈/街道
+              <input id="area" value="天河区体育西路" />
+            </label>
+            <label>
+              详细位置
+              <input id="address" value="天环广场" />
+            </label>
+            <label>
+              开店品类
+              <input id="category" value="奶茶店" />
+            </label>
+            <label>
+              分析半径
+              <select id="radius">
+                <option value="500">500 米</option>
+                <option value="1000" selected>1000 米</option>
+                <option value="1500">1500 米</option>
+              </select>
+            </label>
+            <label>
+              月租金
+              <input id="rent" value="18000" inputmode="numeric" />
+            </label>
+          </div>
+          <div class="map">
+            <div>
+              <strong id="map-title">天环广场</strong>
+              <span id="map-subtitle">113.324701 / 23.132257</span>
+            </div>
+          </div>
+          <button class="primary" type="submit">生成演示报告</button>
+        </form>
+
+        <section class="panel">
+          <div class="panel-title">
+            <span class="icon">报</span>
+            <h2>分析报告</h2>
+          </div>
+          <div class="score-card" id="score-card">
+            <div>
+              <strong id="score">--</strong>
+              <span>综合评分</span>
+            </div>
+            <p id="level">--</p>
+          </div>
+          <p class="summary" id="summary">填写候选位置后生成报告。</p>
+          <div class="metric-list" id="metrics"></div>
+          <div class="model" id="model"></div>
+        </section>
+      </section>
+
+      <section class="panel poi-section">
+        <div class="panel-title">
+          <span class="icon">周</span>
+          <h2>周边 POI 摘要</h2>
+        </div>
+        <div class="poi-grid" id="poi-grid"></div>
+      </section>
+    </main>
+
+    <script>
+      const form = document.querySelector("#demo-form");
+      const statusEl = document.querySelector("#status");
+      const scoreEl = document.querySelector("#score");
+      const levelEl = document.querySelector("#level");
+      const summaryEl = document.querySelector("#summary");
+      const metricsEl = document.querySelector("#metrics");
+      const modelEl = document.querySelector("#model");
+      const poiGridEl = document.querySelector("#poi-grid");
+      const scoreCard = document.querySelector("#score-card");
+
+      function clamp(value, min = 0, max = 100) {
+        return Math.max(min, Math.min(max, Math.round(value)));
+      }
+
+      function readNumber(id) {
+        return Number(document.querySelector(id).value || 0);
+      }
+
+      function levelFor(score) {
+        if (score >= 80) return "推荐";
+        if (score >= 60) return "谨慎推荐";
+        if (score >= 40) return "高风险";
+        return "不建议";
+      }
+
+      function toneFor(score) {
+        if (score >= 80) return "good";
+        if (score >= 60) return "";
+        return "risk";
+      }
+
+      function buildReport() {
+        const category = document.querySelector("#category").value.trim() || "未填写品类";
+        const radius = readNumber("#radius");
+        const rent = readNumber("#rent");
+        const competitor500 = category.includes("奶茶") ? 9 : category.includes("咖啡") ? 7 : 4;
+        const competitor1000 = competitor500 + (radius >= 1000 ? 8 : 2);
+        const rentScore = rent ? clamp(100 - (rent / 80000) * 220) : 55;
+        const traffic = clamp(10 + 20 * 1.8 + 18 * 1.6 + 5 * 2.2 + 9 * 3 + 24 * 1.6);
+        const competition = clamp(100 - competitor500 * 10 - (competitor1000 - competitor500) * 4);
+        const match = clamp(38 + 20 * 1.5 + 18 * 1.2 + 5 * 1.4 + 24 * 1.6);
+        const transit = clamp(25 + 9 * 9 + 24 * 0.25);
+        const risk = clamp(80 - competitor500 * 4 - competitor1000 * 1.5 - (rentScore < 60 ? 10 : 0));
+        const weighted = clamp(traffic * 0.25 + competition * 0.25 + match * 0.15 + rentScore * 0.15 + transit * 0.1 + risk * 0.1);
+        const cap = competitor500 >= 8 ? 68 : 100;
+        const total = Math.min(weighted, cap);
+        return {
+          category,
+          score: total,
+          level: levelFor(total),
+          weighted,
+          cap,
+          dimensions: [
+            ["客流潜力", traffic, "住宅、办公、商业和交通节点较多，客流基础较强。"],
+            ["竞争压力", competition, `500米内约${competitor500}家同品类，1000米内约${competitor1000}家。`],
+            ["消费匹配", match, `${category}与商圈客群匹配度较高，但需要验证客单价。`],
+            ["成本压力", rentScore, `月租金按演示预算估算，当前成本分为${rentScore}。`],
+            ["交通可达", transit, "地铁、公交和商业入口密集，到店便利度较好。"],
+            ["经营风险", risk, "主要风险来自同品类分流和租金压力。"],
+          ],
+          poi: [
+            ["总 POI", 260],
+            ["500m 竞品", competitor500],
+            ["住宅", 20],
+            ["办公", 18],
+            ["交通", 9],
+            ["商业", 24],
+          ],
+        };
+      }
+
+      function render() {
+        const report = buildReport();
+        statusEl.textContent = "已生成报告";
+        scoreEl.textContent = report.score;
+        levelEl.textContent = report.level;
+        scoreCard.className = `score-card ${toneFor(report.score)}`;
+        summaryEl.textContent = `${report.category}当前评估为“${report.level}”，总分为 ${report.score} 分。优势来自客流和交通，主要风险集中在同品类竞争与成本压力。`;
+        metricsEl.innerHTML = report.dimensions
+          .map(
+            ([name, score, reason]) => `
+              <div class="metric">
+                <span>${name}</span>
+                <div><strong>${score}</strong>${reason}</div>
+              </div>
+            `,
+          )
+          .join("");
+        modelEl.innerHTML = `
+          <div class="model-grid">
+            <div class="model-card">
+              <span>IRS零售饱和指数</span>
+              <strong>接近平衡</strong>
+              <p>用住宅、办公、学校、交通、商业和互补POI估算需求，用竞品数量估算供给。</p>
+            </div>
+            <div class="model-card">
+              <span>哈夫模型雏形</span>
+              <strong>42%</strong>
+              <p>用客流代理、成本压力和竞品数量近似目标店吸引力，仅用于相对比较。</p>
+            </div>
+            <div class="model-card calibration">
+              <span>保守校准</span>
+              <strong>${report.score}分</strong>
+              <p>原始加权分为${report.weighted}分，${report.cap < 100 ? `因触发竞品密集规则，总分封顶为${report.cap}分。` : "未触发竞品密集封顶规则。"}</p>
+            </div>
+          </div>
+        `;
+        poiGridEl.innerHTML = report.poi
+          .map(
+            ([label, value], index) => `
+              <div class="poi-tile">
+                <span>${label}</span>
+                <strong>${value}</strong>
+                <p>${index === 1 ? "需要重点复核" : "演示样本"}</p>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>

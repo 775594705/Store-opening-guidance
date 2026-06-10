@@ -69,6 +69,14 @@ cd ..\frontend
 npm run build
 ```
 
+## 直接打开静态演示
+
+```text
+standalone-demo.html
+```
+
+该文件内置样式和演示数据，不依赖后端服务，可用于快速预览当前产品界面和报告效果。
+
 ## 第2周低保真原型
 
 ```text
