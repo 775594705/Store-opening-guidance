@@ -5,6 +5,10 @@ from app.api.routes.analysis import router as analysis_router
 from app.api.routes.health import router as health_router
 from app.api.routes.maps import router as maps_router
 from app.api.routes.pois import router as pois_router
+from app.core.config import get_settings
+from app.core.security import RateLimitMiddleware
+
+settings = get_settings()
 
 app = FastAPI(
     title="Store Advisor API",
@@ -17,15 +21,18 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-        "null",
-    ],
-    allow_credentials=True,
+    allow_origins=settings.allowed_cors_origins(),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if settings.security_rate_limit_enabled:
+    app.add_middleware(
+        RateLimitMiddleware,
+        default_requests_per_minute=settings.security_rate_limit_requests_per_minute,
+        expensive_requests_per_minute=settings.security_rate_limit_expensive_requests_per_minute,
+    )
 
 app.include_router(health_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")

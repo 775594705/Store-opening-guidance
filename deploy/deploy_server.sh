@@ -19,6 +19,32 @@ mkdir -p "$APP_DIR" /www/wwwlogs
 rm -rf "$APP_DIR/backend" "$APP_DIR/frontend"
 tar -xzf "$ARCHIVE_PATH" -C "$APP_DIR"
 
+API_DOCS_USER="${API_DOCS_USER:-guidance_admin}"
+API_DOCS_PASSWORD_FILE="$APP_DIR/.api_docs_password"
+API_DOCS_HTPASSWD_FILE="$APP_DIR/.htpasswd_api_docs"
+if [[ -n "${API_DOCS_PASSWORD:-}" ]]; then
+  api_docs_password="$API_DOCS_PASSWORD"
+  printf '%s\n' "$api_docs_password" > "$API_DOCS_PASSWORD_FILE"
+elif [[ -f "$API_DOCS_PASSWORD_FILE" ]]; then
+  api_docs_password="$(tr -d '\r\n' < "$API_DOCS_PASSWORD_FILE")"
+else
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "openssl is required to generate API docs password." >&2
+    exit 1
+  fi
+  api_docs_password="$(openssl rand -base64 24 | tr -d '\r\n')"
+  printf '%s\n' "$api_docs_password" > "$API_DOCS_PASSWORD_FILE"
+fi
+chmod 600 "$API_DOCS_PASSWORD_FILE"
+api_docs_hash="$(openssl passwd -apr1 "$api_docs_password")"
+printf '%s:%s\n' "$API_DOCS_USER" "$api_docs_hash" > "$API_DOCS_HTPASSWD_FILE"
+if getent group www >/dev/null 2>&1; then
+  chown root:www "$API_DOCS_HTPASSWD_FILE"
+  chmod 640 "$API_DOCS_HTPASSWD_FILE"
+else
+  chmod 644 "$API_DOCS_HTPASSWD_FILE"
+fi
+
 if ! command -v python3 >/dev/null 2>&1; then
   if command -v apt-get >/dev/null 2>&1; then
     apt-get update
@@ -42,6 +68,10 @@ API_HOST=127.0.0.1
 API_PORT=8000
 AMAP_API_KEY=${AMAP_API_KEY}
 DEFAULT_SEARCH_RADIUS_METERS=1000
+CORS_ALLOW_ORIGINS=http://${DOMAIN},https://${DOMAIN}
+SECURITY_RATE_LIMIT_ENABLED=1
+SECURITY_RATE_LIMIT_REQUESTS_PER_MINUTE=120
+SECURITY_RATE_LIMIT_EXPENSIVE_REQUESTS_PER_MINUTE=30
 LLM_PROVIDER=qwen
 LLM_API_KEY=
 LLM_MODEL=qwen-plus
@@ -81,6 +111,7 @@ cat > "$NGINX_CONF" <<EOF
 server {
     listen 80;
     server_name ${DOMAIN} 165.154.40.121;
+    server_tokens off;
 
     root ${APP_DIR}/frontend;
     index index.html;
@@ -88,19 +119,49 @@ server {
     access_log /www/wwwlogs/guidance.access.log;
     error_log /www/wwwlogs/guidance.error.log;
 
-    client_max_body_size 20m;
+    client_max_body_size 1m;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), payment=()" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://fastapi.tiangolo.com; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" always;
+
+    if (\$request_method = TRACE) {
+        return 405;
+    }
+
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+
+    location ~ ^/api/(docs|redoc|openapi\.json)$ {
+        auth_basic "Guidance API Docs";
+        auth_basic_user_file ${API_DOCS_HTPASSWD_FILE};
+
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
 
     location /api/ {
         proxy_pass http://127.0.0.1:8000/api/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For \$remote_addr;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
     location / {
         try_files \$uri \$uri/ /index.html;
+    }
+
+    location /assets/ {
+        expires 7d;
+        try_files \$uri =404;
     }
 }
 EOF
