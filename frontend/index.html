@@ -149,7 +149,8 @@
     </main>
 
     <script>
-      const API_BASE_URL = "http://127.0.0.1:8000";
+      const API_BASE_URL =
+        window.location.protocol === "file:" ? "http://127.0.0.1:8000" : window.location.origin;
       const DEFAULT_MAP_ZOOM = 16;
       const PRECISE_MAP_ZOOM = 17;
       const MIN_MAP_ZOOM = 3;

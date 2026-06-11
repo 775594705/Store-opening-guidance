@@ -73,6 +73,17 @@ cd ..\frontend
 npm run build
 ```
 
+## 线上部署
+
+部署域名：`guidance.csgozbt.com`
+
+部署配置和脚本位于 `deploy/`：
+- `deploy/deploy_server.sh`
+- `deploy/nginx-guidance.conf`
+- `deploy/guidance-api.service`
+
+前端线上模式会自动使用当前域名调用 `/api`，本地双击 `open-app.html` 时仍会调用 `http://127.0.0.1:8000`。
+
 ## 直接打开完整功能页面
 
 ```text

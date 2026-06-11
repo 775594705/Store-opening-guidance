@@ -82,6 +82,14 @@ tar -tf packages\Store-opening-guidance-project-snapshot.zip
 
 确认不包含 `.env`、`.venv`、`node_modules`、`dist`、日志和真实 API Key。
 
+## 线上部署
+
+- 目标域名：`guidance.csgozbt.com`
+- 生产前端通过同源 `/api` 调用后端。
+- 本地双击 `open-app.html` 时仍调用 `http://127.0.0.1:8000`。
+- 部署脚本和模板位于 `deploy/`。
+- `deploy/deploy_server.sh` 需要服务器环境变量 `AMAP_API_KEY`，不要把真实 Key 写入仓库。
+
 ## 开发注意
 
 - 改前端后运行 `npm run build`。
