@@ -10,6 +10,9 @@ app = FastAPI(
     title="Store Advisor API",
     version="0.1.0",
     description="Opening-site feasibility analysis and report generation API.",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
 )
 
 app.add_middleware(
