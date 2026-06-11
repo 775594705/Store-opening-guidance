@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from time import sleep
+from typing import Optional
 
 import httpx
 
@@ -21,11 +22,11 @@ class GeocodingResult:
     formatted_address: str
     longitude: float
     latitude: float
-    province: str | None = None
-    city: str | None = None
-    district: str | None = None
-    adcode: str | None = None
-    level: str | None = None
+    province: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    adcode: Optional[str] = None
+    level: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -36,9 +37,9 @@ class PoiItem:
     type_code: str
     address: str
     category_group: str
-    distance_meters: int | None = None
-    longitude: float | None = None
-    latitude: float | None = None
+    distance_meters: Optional[int] = None
+    longitude: Optional[float] = None
+    latitude: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -48,15 +49,15 @@ class PlaceSearchResult:
     address: str
     longitude: float
     latitude: float
-    province: str | None = None
-    city: str | None = None
-    district: str | None = None
-    type_name: str | None = None
-    type_code: str | None = None
+    province: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    type_name: Optional[str] = None
+    type_code: Optional[str] = None
 
 
 class AmapClient:
-    def __init__(self, api_key: str, http_client: httpx.Client | None = None) -> None:
+    def __init__(self, api_key: str, http_client: Optional[httpx.Client] = None) -> None:
         if not api_key:
             raise AmapApiError("AMAP_API_KEY is not configured")
         self.api_key = api_key
@@ -107,9 +108,9 @@ class AmapClient:
         radius_meters: int,
         *,
         category: str,
-        city: str | None = None,
-        keywords: str | None = None,
-        types: str | None = None,
+        city: Optional[str] = None,
+        keywords: Optional[str] = None,
+        types: Optional[str] = None,
         pages: int = 2,
         offset: int = 25,
     ) -> list[PoiItem]:
@@ -325,7 +326,7 @@ def _is_competitor(category: str, name: str, type_name: str) -> bool:
     return any(keyword.lower() in haystack for keyword in matched_keywords)
 
 
-def _parse_location(value: str, *, allow_empty: bool = False) -> tuple[float | None, float | None]:
+def _parse_location(value: str, *, allow_empty: bool = False) -> tuple[Optional[float], Optional[float]]:
     if not value:
         if allow_empty:
             return None, None
@@ -336,7 +337,7 @@ def _parse_location(value: str, *, allow_empty: bool = False) -> tuple[float | N
     return float(parts[0]), float(parts[1])
 
 
-def _parse_int(value) -> int | None:
+def _parse_int(value) -> Optional[int]:
     if value in (None, ""):
         return None
     try:
@@ -345,7 +346,7 @@ def _parse_int(value) -> int | None:
         return None
 
 
-def _empty_to_none(value) -> str | None:
+def _empty_to_none(value) -> Optional[str]:
     if value in (None, "", []):
         return None
     return str(value)

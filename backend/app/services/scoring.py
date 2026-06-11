@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 CONFIG_PATH = Path(__file__).resolve().parents[1] / "config" / "scoring_rules.json"
@@ -21,8 +21,8 @@ class LocationSignals:
     transit_poi_count: int = 0
     commercial_poi_count: int = 0
     complementary_poi_count: int = 0
-    rent_monthly: float | None = None
-    budget_monthly: float | None = None
+    rent_monthly: Optional[float] = None
+    budget_monthly: Optional[float] = None
 
 
 def clamp(value: float, low: int = 0, high: int = 100) -> int:
@@ -403,7 +403,7 @@ def _category_profile(category: str, config: dict[str, Any]) -> dict[str, float]
     return config["profiles"][profile_name]
 
 
-def _matched_profile_name(category: str, config: dict[str, Any]) -> str | None:
+def _matched_profile_name(category: str, config: dict[str, Any]) -> Optional[str]:
     for key in config["profiles"]:
         if key in category:
             return key

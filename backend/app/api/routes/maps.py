@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel, Field
@@ -26,11 +27,11 @@ class MapSearchCandidate(BaseModel):
     address: str
     longitude: float
     latitude: float
-    province: str | None = None
-    city: str | None = None
-    district: str | None = None
-    type_name: str | None = None
-    type_code: str | None = None
+    province: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    type_name: Optional[str] = None
+    type_code: Optional[str] = None
     source: str = "poi"
 
 

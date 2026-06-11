@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from time import sleep
+from typing import Optional
 
 from app.core.config import Settings
 from app.services.amap import AmapClient, GeocodingResult, PoiItem, summarize_pois
@@ -21,7 +22,7 @@ ANALYSIS_TYPE_GROUPS = (
 
 @dataclass(frozen=True)
 class PoiCollectionResult:
-    location: GeocodingResult | None
+    location: Optional[GeocodingResult]
     pois: list[PoiItem]
     summary: dict[str, int]
 
@@ -38,14 +39,14 @@ def collect_pois_for_analysis(
     settings: Settings,
     city: str,
     category: str,
-    address: str | None = None,
-    longitude: float | None = None,
-    latitude: float | None = None,
-    radius_meters: int | None = None,
+    address: Optional[str] = None,
+    longitude: Optional[float] = None,
+    latitude: Optional[float] = None,
+    radius_meters: Optional[int] = None,
     pages: int = 2,
 ) -> PoiCollectionResult:
     radius = radius_meters or settings.default_search_radius_meters
-    location: GeocodingResult | None = None
+    location: Optional[GeocodingResult] = None
 
     with AmapClient(settings.amap_api_key) as client:
         if longitude is None or latitude is None:
@@ -79,8 +80,8 @@ def signals_from_poi_summary(
     *,
     category: str,
     summary: dict[str, int],
-    rent_monthly: float | None,
-    budget_monthly: float | None,
+    rent_monthly: Optional[float],
+    budget_monthly: Optional[float],
 ) -> LocationSignals:
     return LocationSignals(
         category=category,

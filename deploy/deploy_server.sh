@@ -124,6 +124,16 @@ if command -v ufw >/dev/null 2>&1; then
   ufw allow 443/tcp || true
 fi
 
-curl -fsS http://127.0.0.1:8000/api/health
-echo
+for attempt in {1..20}; do
+  if curl -fsS http://127.0.0.1:8000/api/health; then
+    echo
+    break
+  fi
+  if [[ "$attempt" -eq 20 ]]; then
+    echo "Backend health check failed after waiting." >&2
+    systemctl status guidance-api --no-pager -l || true
+    exit 1
+  fi
+  sleep 1
+done
 echo "Deployment completed: http://${DOMAIN}/"
