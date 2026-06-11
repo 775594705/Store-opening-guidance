@@ -13,8 +13,8 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor, Twips
 
 
-WORKDIR = Path(r"C:\Users\Administrator\Desktop\ai经营")
-OUT = WORKDIR / "开店指导模拟预测软件_详细实施计划书.docx"
+WORKDIR = Path(__file__).resolve().parents[1]
+OUT = WORKDIR / "docs" / "source" / "开店指导模拟预测软件_详细实施计划书.docx"
 TABLE_HELPERS = Path(
     r"C:\Users\Administrator\.codex\plugins\cache\openai-primary-runtime"
     r"\documents\26.601.10930\skills\documents\scripts"

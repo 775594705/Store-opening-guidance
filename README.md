@@ -22,13 +22,17 @@
 
 ```text
 .
+├── open-app.html         # 可双击打开的完整功能入口（需后端运行）
 ├── backend/              # FastAPI 后端：数据采集、评分、报告生成
-├── frontend/             # Web 前端：地址输入、品类选择、报告展示
+├── frontend/             # Web 前端：地址输入、地图选点、报告展示
 ├── docs/                 # PRD、接口文档、数据字典、开发日志
+│   └── source/           # 原始项目书和详细实施计划 Word 文档
 ├── prototypes/           # 低保真和交互原型
 ├── experiments/mirofish/ # MiroFish 独立实验区
-├── scripts/              # 环境检查和辅助脚本
+├── scripts/              # 环境检查、计划书生成等辅助脚本
+├── packages/             # 本地打包产物（zip 被 Git 忽略）
 ├── .env.example          # 环境变量示例
+├── AGENT.md              # 给后续 AI 协作使用的项目说明
 └── README.md
 ```
 

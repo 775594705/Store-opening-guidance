@@ -6,6 +6,7 @@ Thumbs.db
 
 # Word temporary files and generated QA output
 ~$*.docx
+/*.docx
 *.tmp
 rendered_plan/
 
